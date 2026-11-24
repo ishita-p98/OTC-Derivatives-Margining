@@ -12,75 +12,89 @@ Can bilateral margin requirements reduce a dealer's counterparty exposure while 
 
 The model represents a stylized OTC forward between two institutions:
 
-- **Institution A - Investor:** long a forward, holds limited cash and illiquid assets, and can default from an exogenous shock or inability to meet margin calls.
-- **Institution B - Dealer:** takes the opposite side and is assumed always solvent.
+- **Institution A — Investor:** long a forward, holds limited cash and illiquid assets, and can default from an exogenous shock or inability to meet margin calls.
+- **Institution B — Dealer:** takes the opposite side and is assumed always solvent.
 
-The analysis derives one-sided 99% delta-normal initial margin, simulates arithmetic-Brownian asset-price paths over a 252-trading-day observation window, tracks variation-margin calls, and estimates close-out losses after the MPOR. Extensions add fire sales, eligible illiquid collateral, procyclical initial margin and a lagged aggregate fire-sale haircut.
+The analysis derives one-sided 99% delta-normal initial margin, simulates arithmetic-Brownian asset-price paths over a 252-trading-day observation window, tracks variation-margin calls, and estimates close-out losses after MPOR. Extensions add fire sales, eligible illiquid collateral, procyclical initial margin and a lagged aggregate fire-sale haircut.
 
 ## Start here
 
-- [Main submitted research notebook](notebooks/01_margining_simulation_submission.ipynb) - the complete original implementation, retained as a single notebook for provenance.
-- [Methodology](docs/METHODOLOGY.md) - model setup, equations and conventions.
-- [Model audit and corrections](docs/MODEL_AUDIT.md) - differences identified between assignment, submission and revised simulation.
-- [Simulation results](docs/SIMULATION_RESULTS.md) - corrected-run tables and caveats.
-- [Source review](docs/SOURCE_REVIEW.md) - overview of assignment requirements and submitted materials.
-- [Publication status](docs/PUBLICATION_STATUS.md) - anonymization and release notes.
-- [Contribution context](CONTRIBUTIONS.md) - acknowledgement of the collaborative university project.
+| Resource | Description |
+|---|---|
+| [Initial margin and baseline](notebooks/01_initial_margin_and_baseline.ipynb) | VaR derivation, price process and unlimited-cash benchmark |
+| [Fire sales and dealer losses](notebooks/02_fire_sales_and_dealer_losses.ipynb) | Liquidity constraints, fire sales and loss distributions |
+| [Policy experiments](notebooks/03_margin_policy_experiments.ipynb) | IM multipliers, weekly VM, MPOR and eligible collateral |
+| [Procyclicality and systemic risk](notebooks/04_procyclicality_and_systemic_risk.ipynb) | Volatility-sensitive IM and aggregate fire-sale feedback |
+| [Original submitted notebook](notebooks/00_original_submission.ipynb) | Historical submission retained for provenance |
+| [Methodology](docs/METHODOLOGY.md) | Model assumptions and equations |
+| [Model audit](docs/MODEL_AUDIT.md) | Corrections relative to the submitted report/notebook |
+| [Simulation results](docs/SIMULATION_RESULTS.md) | Scenario and policy tables |
+| [Source review](docs/SOURCE_REVIEW.md) | Mapping to the assignment requirements |
 
-## Selected results from the corrected research implementation
+## Selected corrected-run results
 
-A separate corrected implementation was previously run with 20,000 Monte Carlo paths, a 252-day observation window and a 10-day MPOR.
+A corrected research implementation was run with 20,000 paths, 252 observation days, 10-day MPOR, and fixed random seeds.
 
 - **99% initial margin:** $9,268.39.
 - **Unlimited-cash exogenous default frequency:** 1.03%.
 - **Limited-cash investor default frequency:** 21.92%.
-- **Paths with fire sales:** 56.12%.
+- **Paths experiencing fire sales:** 56.12%.
 - **Mean realized fire-sale cost per path:** $552.26.
 
 | Setup | Investor default | Fire-sale cost / path | Mean dealer loss / path |
 |---|---:|---:|---:|
-| Daily VM, limited cash and fire sales | 21.92% | $552.26 | $10.91 |
+| Unlimited cash, daily VM | 1.03% | $0 | $0.12 |
+| Limited cash, daily VM + fire sales | 21.92% | $552.26 | $10.91 |
 | Weekly VM (5 trading days) | 20.39% | $516.29 | $51.12 |
-| Eligible illiquid collateral for VM | 3.00% | $0.00 | $0.61 |
+| Eligible illiquid collateral for VM | 3.00% | $0 | $0.61 |
 
-These are outputs from a stylized simulation under selected parameters, not empirical default forecasts. See [complete results and interpretation](docs/SIMULATION_RESULTS.md).
+These are stylized simulation outputs under selected assumptions, not empirical default forecasts. Read the [full results and limitations](docs/SIMULATION_RESULTS.md).
+
+## Selected figures
+
+The reproducible workflow regenerates the charts and tables from `run_analysis.py`.
+
+![Investor default frequency](figures/02_default_frequency.png)
+
+![Initial margin policy trade-off](figures/04_initial_margin_tradeoff.png)
+
+![MPOR sensitivity](figures/05_mpor_sensitivity.png)
 
 ## Repository structure
 
-- `notebooks/` - original research notebook and notebook guide.
-- `docs/` - methodology, audit, results and source review.
-- `data/` - no external data required; model inputs are parameterized.
-- `tests/` - notebook JSON and Python syntax integrity checks.
-- `index.html` - existing project overview page retained for compatibility.
+- `src/otc_margining.py` — simulation, margin, collateral and loss functions.
+- `run_analysis.py` — reproducible core scenarios, policy experiments, tables and figures.
+- `notebooks/` — four focused walkthroughs and the original submission notebook.
+- `figures/` — generated charts.
+- `outputs/` — generated JSON/CSV scenario summaries.
+- `docs/` — methodology, audit, source review and results.
+- `tests/` — model integrity tests.
+- `.github/workflows/` — automated tests and reproducible outputs.
 
-## Run and inspect
-
-Install the dependencies:
+## Run locally
 
 ```bash
 python -m pip install -r requirements.txt
-```
-
-Open [the research notebook](notebooks/01_margining_simulation_submission.ipynb) in Jupyter and run its cells in order. A lightweight structural test can be run with:
-
-```bash
+python run_analysis.py
 python -m pytest -q
 ```
+
+No external market data are required: the model uses simulated price paths and parametric exogenous defaults. The analysis is self-contained.
 
 ## Key modelling conventions
 
 - Forward MTM to A: \(V_t=Q(S_t-K)\).
 - Initial margin: \(IM=z_{0.99}Q\sigma_s\sqrt{MPOR/252}\), with dollar volatility \(\sigma_s=20\%\times S_0\).
-- Daily default probability is calibrated so the one-year cumulative probability equals the selected annual PD.
+- Daily default probability is calibrated so the one-year cumulative default probability equals the selected annual PD.
 - VM stops on the default day. At close-out, B holds IM actually posted plus the last successfully settled VM balance.
-- Fire-sale losses are charged only on assets actually sold; insufficient proceeds trigger liquidity default.
-- The corrected implementation uses common price paths and exogenous default dates where possible for policy comparisons.
+- Fire-sale costs are charged only on assets actually sold; insufficient proceeds trigger liquidity default.
+- Policy comparisons use common price paths and exogenous default dates where possible.
 
 ## Model limitations
 
-The model assumes arithmetic-Brownian price dynamics, an always-solvent dealer, independent investor exogenous defaults and simplified collateral/close-out treatment. The systemic extension makes the fire-sale discount depend on the previous day's aggregate selling fraction, but does not model correlated defaults or common asset-price returns. Outcomes depend on the selected parameters and random seed.
+The model assumes arithmetic-Brownian price dynamics, an always-solvent dealer, independent investor exogenous defaults, and simplified collateral and close-out mechanics. Eligible collateral value is treated as stable through close-out. The systemic extension links fire-sale discounts through aggregate sales but does not model correlated defaults or common asset-price returns. Results depend on the chosen parameters and random seed.
 
-The revised implementation changes several timing and accounting conventions in the submitted notebook/report. The detailed results below are from the corrected local analysis package and should not be confused with the original notebook's stored outputs. They have not been calibrated to real-world portfolios or regulatory standards.
+The submitted report and notebook used inconsistent observation-horizon/MPOR descriptions and settlement conventions. The revised implementation documents its chosen conventions in [the model audit](docs/MODEL_AUDIT.md). The corrected outputs are not intended to reproduce the submitted report's numbers.
 
 ## Group-project context
 
@@ -90,4 +104,4 @@ This work originated as a university group assignment and is presented as collab
 
 No open-source licence is included. Reuse permissions should be agreed by the relevant contributors. Public visibility does not grant rights to third-party content. See [licensing note](LICENSE_NOT_INCLUDED.md).
 
-**Educational use only - not regulatory advice or investment advice.**
+**Educational use only — not regulatory advice or investment advice.**
