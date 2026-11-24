@@ -29,6 +29,7 @@ The analysis derives one-sided 99% delta-normal initial margin, simulates arithm
 | [Methodology](docs/METHODOLOGY.md) | Model assumptions and equations |
 | [Model audit](docs/MODEL_AUDIT.md) | Corrections relative to the submitted report/notebook |
 | [Simulation results](docs/SIMULATION_RESULTS.md) | Scenario and policy tables |
+| [Five-page technical summary](docs/OTC_Margining_Technical_Summary.pdf) | PDF report generated from the simulation outputs |
 | [Source review](docs/SOURCE_REVIEW.md) | Mapping to the assignment requirements |
 
 ## Selected corrected-run results
@@ -52,7 +53,7 @@ These are stylized simulation outputs under selected assumptions, not empirical 
 
 ## Selected figures
 
-The reproducible workflow regenerates the charts and tables from `run_analysis.py`.
+The reproducible workflow regenerates the charts, CSV/JSON tables and five-page PDF from `run_analysis.py` and `build_report.py`.
 
 ![Investor default frequency](figures/02_default_frequency.svg)
 
