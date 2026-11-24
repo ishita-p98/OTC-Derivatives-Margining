@@ -54,11 +54,11 @@ These are stylized simulation outputs under selected assumptions, not empirical 
 
 The reproducible workflow regenerates the charts and tables from `run_analysis.py`.
 
-![Investor default frequency](figures/02_default_frequency.png)
+![Investor default frequency](figures/02_default_frequency.svg)
 
-![Initial margin policy trade-off](figures/04_initial_margin_tradeoff.png)
+![Initial margin policy trade-off](figures/04_initial_margin_tradeoff.svg)
 
-![MPOR sensitivity](figures/05_mpor_sensitivity.png)
+![MPOR sensitivity](figures/05_mpor_sensitivity.svg)
 
 ## Repository structure
 
