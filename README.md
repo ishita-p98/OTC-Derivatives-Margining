@@ -1,6 +1,6 @@
 # OTC Derivatives Margining & Systemic Liquidity Risk
 
-**Collaborative university research | Quantitative risk management | OTC derivatives | Initial and variation margin | Fire sales | Systemic liquidity**
+**University coursework | Quantitative risk management | OTC derivatives | Initial and variation margin | Fire sales | Systemic liquidity**
 
 > Educational Monte Carlo model. This is not a regulatory margin engine, production counterparty-risk model, investment recommendation or validated loss forecast.
 
@@ -97,9 +97,9 @@ The model assumes arithmetic-Brownian price dynamics, an always-solvent dealer, 
 
 The submitted report and notebook used inconsistent observation-horizon/MPOR descriptions and settlement conventions. The revised implementation documents its chosen conventions in [the model audit](docs/MODEL_AUDIT.md). The corrected outputs are not intended to reproduce the submitted report's numbers.
 
-## Group-project context
+## Project context
 
-This work originated as a university group assignment and is presented as collaborative research, not as an individually completed project. The public-facing repository omits student numbers, personal identifiers and the original group roster.
+I led most of the modelling, coding and analysis for this university group assignment. The project also benefited from collaboration with other group members.
 
 ## Licensing
 
