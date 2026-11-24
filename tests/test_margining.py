@@ -11,26 +11,27 @@ def test_initial_margin_matches_delta_normal_formula():
     assert abs(cfg.initial_margin()-expected)<1e-8
 
 
-def test_daily_default_probability_aggregates_to_annual_pd():
+def test_daily_pd_aggregates_to_annual_pd():
     cfg=ModelConfig(paths=200000)
     assert abs(1-(1-cfg.daily_pd)**cfg.trading_days-cfg.annual_pd)<1e-10
     observed=np.mean(simulate_default_days(cfg,seed=123)<=cfg.horizon)
     assert abs(observed-cfg.annual_pd)<.003
 
 
-def test_price_paths_include_full_mpor_closeout_extension():
+def test_price_paths_include_mpor_extension():
     cfg=ModelConfig(paths=50,horizon=252,mpor=10)
     assert simulate_prices(cfg,seed=10).shape==(50,263)
 
 
 def test_unlimited_cash_has_no_liquidity_defaults():
     cfg=ModelConfig(paths=2000)
-    result=simulate_liquidity(simulate_prices(cfg),simulate_default_days(cfg),cfg,mode="unlimited")
+    prices=simulate_prices(cfg); days=simulate_default_days(cfg)
+    result=simulate_liquidity(prices,days,cfg,mode="unlimited")
     assert result["liquidity_default"].sum()==0
-    assert np.all(result["defaulted"]==(simulate_default_days(cfg)<=cfg.horizon))
+    assert np.all(result["defaulted"]==(days<=cfg.horizon))
 
 
-def test_fire_sale_cost_is_nonnegative_and_only_when_assets_sold():
+def test_fire_sale_cost_is_nonnegative_and_only_when_sold():
     cfg=ModelConfig(paths=5000)
     result=simulate_liquidity(simulate_prices(cfg),simulate_default_days(cfg),cfg,mode="fire_sale")
     assert np.all(result["fire_sale_cost"]>=0)
@@ -38,20 +39,20 @@ def test_fire_sale_cost_is_nonnegative_and_only_when_assets_sold():
     assert np.all(result["losses"]>=0)
 
 
-def test_eligible_collateral_policy_has_no_fire_sale_cost():
+def test_eligible_collateral_has_no_fire_sale_cost():
     cfg=ModelConfig(paths=3000)
     result=simulate_liquidity(simulate_prices(cfg),simulate_default_days(cfg),cfg,mode="eligible_collateral")
     assert np.all(result["fire_sale_cost"]==0)
     assert np.all(result["eligible_collateral_effective"]>=0)
 
 
-def test_insufficient_inception_resources_trigger_default():
+def test_insufficient_initial_resources_trigger_default():
     cfg=ModelConfig(paths=1000,initial_cash=1000,illiquid_assets=100)
     result=simulate_liquidity(simulate_prices(cfg),simulate_default_days(cfg),cfg,mode="fire_sale")
     assert np.all(result["default_day"]==0)
 
 
-def test_systemic_haircut_is_lagged_and_capped():
+def test_systemic_haircut_is_capped_and_increases_after_sales():
     cfg=ModelConfig(paths=2500)
     result=simulate_liquidity(simulate_prices(cfg),simulate_default_days(cfg),cfg,mode="fire_sale",systemic_h0=.10,systemic_theta=2)
     h=result["systemic_haircut_path"]
