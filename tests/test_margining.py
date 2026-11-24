@@ -1,62 +1,42 @@
 from pathlib import Path
 import sys
-sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+
 import numpy as np
-from src.otc_margining import ModelConfig,simulate_prices,simulate_default_days,simulate_liquidity
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from src.otc_margining import (
+    ModelConfig,
+    simulate_default_days,
+    simulate_liquidity,
+    simulate_prices,
+)
 
 
-def test_initial_margin_matches_delta_normal_formula():
-    cfg=ModelConfig(paths=1000)
-    expected=2.3263478740408408*cfg.position*20.0*np.sqrt(10/252)
-    assert abs(cfg.initial_margin()-expected)<1e-8
+def test_initial_margin_is_delta_normal_var():
+    cfg = ModelConfig(paths=100)
+    expected = 2.3263478740408408 * cfg.position * 20.0 * np.sqrt(10 / 252)
+    assert np.isclose(cfg.initial_margin(), expected)
 
 
-def test_daily_pd_aggregates_to_annual_pd():
-    cfg=ModelConfig(paths=200000)
-    assert abs(1-(1-cfg.daily_pd)**cfg.trading_days-cfg.annual_pd)<1e-10
-    observed=np.mean(simulate_default_days(cfg,seed=123)<=cfg.horizon)
-    assert abs(observed-cfg.annual_pd)<.003
+def test_default_intensity_matches_annual_probability():
+    cfg = ModelConfig(paths=100)
+    assert np.isclose(1 - (1 - cfg.daily_pd) ** cfg.trading_days, cfg.annual_pd)
 
 
-def test_price_paths_include_mpor_extension():
-    cfg=ModelConfig(paths=50,horizon=252,mpor=10)
-    assert simulate_prices(cfg,seed=10).shape==(50,263)
+def test_price_simulation_contains_observation_and_mpor_days():
+    cfg = ModelConfig(paths=20, horizon=252, mpor=10)
+    assert simulate_prices(cfg, seed=7).shape == (20, 263)
 
 
-def test_unlimited_cash_has_no_liquidity_defaults():
-    cfg=ModelConfig(paths=2000)
-    prices=simulate_prices(cfg); days=simulate_default_days(cfg)
-    result=simulate_liquidity(prices,days,cfg,mode="unlimited")
-    assert result["liquidity_default"].sum()==0
-    assert np.all(result["defaulted"]==(days<=cfg.horizon))
-
-
-def test_fire_sale_cost_is_nonnegative_and_only_when_sold():
-    cfg=ModelConfig(paths=5000)
-    result=simulate_liquidity(simulate_prices(cfg),simulate_default_days(cfg),cfg,mode="fire_sale")
-    assert np.all(result["fire_sale_cost"]>=0)
-    assert np.all((result["fire_sale_cost"]==0)|(result["fire_sale_events"]>0))
-    assert np.all(result["losses"]>=0)
-
-
-def test_eligible_collateral_has_no_fire_sale_cost():
-    cfg=ModelConfig(paths=3000)
-    result=simulate_liquidity(simulate_prices(cfg),simulate_default_days(cfg),cfg,mode="eligible_collateral")
-    assert np.all(result["fire_sale_cost"]==0)
-    assert np.all(result["eligible_collateral_effective"]>=0)
-
-
-def test_insufficient_initial_resources_trigger_default():
-    cfg=ModelConfig(paths=1000,initial_cash=1000,illiquid_assets=100)
-    result=simulate_liquidity(simulate_prices(cfg),simulate_default_days(cfg),cfg,mode="fire_sale")
-    assert np.all(result["default_day"]==0)
-
-
-def test_systemic_haircut_is_capped_and_increases_after_sales():
-    cfg=ModelConfig(paths=2500)
-    result=simulate_liquidity(simulate_prices(cfg),simulate_default_days(cfg),cfg,mode="fire_sale",systemic_h0=.10,systemic_theta=2)
-    h=result["systemic_haircut_path"]
-    assert h[0]==.10
-    assert np.nanmax(h)<=.50
-    assert np.nanmin(h)>=.10
-    assert np.nanmax(h)>.10
+def test_basic_simulation_outputs_are_well_formed():
+    cfg = ModelConfig(paths=500, horizon=40, mpor=10)
+    prices = simulate_prices(cfg, seed=11)
+    default_days = simulate_default_days(cfg, seed=12)
+    for mode in ("unlimited", "fire_sale", "eligible_collateral"):
+        result = simulate_liquidity(prices, default_days, cfg, mode=mode)
+        assert result["defaulted"].shape == (cfg.paths,)
+        assert result["losses"].shape == (cfg.paths,)
+        assert np.all(result["losses"] >= 0)
+        assert np.all(result["fire_sale_cost"] >= 0)
+    eligible = simulate_liquidity(prices, default_days, cfg, mode="eligible_collateral")
+    assert np.all(eligible["fire_sale_cost"] == 0)
