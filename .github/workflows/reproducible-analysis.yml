@@ -28,11 +28,13 @@ jobs:
         run: python -m pytest -q
       - name: Regenerate simulation tables and figures
         run: python run_analysis.py
-      - name: Commit generated charts and tables
+      - name: Build the five-page technical summary
+        run: python build_report.py
+      - name: Commit generated charts, tables and report
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add figures outputs
+          git add figures outputs docs/OTC_Margining_Technical_Summary.pdf
           if ! git diff --cached --quiet; then
             git commit -m "build: regenerate simulation figures and tables [skip ci]"
             git push
