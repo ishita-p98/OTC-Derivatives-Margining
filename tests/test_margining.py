@@ -1,14 +1,13 @@
+import json
 from pathlib import Path
 import sys
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 from src.otc_margining import (
-    ModelConfig,
-    simulate_default_days,
-    simulate_liquidity,
-    simulate_prices,
+    ModelConfig, simulate_default_days, simulate_liquidity, simulate_prices
 )
 
 
@@ -40,3 +39,13 @@ def test_basic_simulation_outputs_are_well_formed():
         assert np.all(result["fire_sale_cost"] >= 0)
     eligible = simulate_liquidity(prices, default_days, cfg, mode="eligible_collateral")
     assert np.all(eligible["fire_sale_cost"] == 0)
+
+
+def test_all_project_notebooks_are_valid_json():
+    notebook_dir = ROOT / "notebooks"
+    paths = sorted(notebook_dir.glob("*.ipynb"))
+    assert len(paths) == 5
+    for path in paths:
+        notebook = json.loads(path.read_text(encoding="utf-8"))
+        assert notebook["nbformat"] >= 4
+        assert notebook["cells"]
